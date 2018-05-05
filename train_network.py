@@ -10,7 +10,7 @@ matplotlib.use('Agg')
 from keras.preprocessing.image import ImageDataGenerator
 from keras.optimizers import Adam
 from sklearn.model_selection import train_test_split
-from keras.preprocessing import img_to_array
+from keras.preprocessing.image import img_to_array
 from keras.utils import to_categorical
 from dl_arch import LeNet
 from imutils import paths 
@@ -45,7 +45,7 @@ random.shuffle(imagePaths)
 for imagePath in imagePaths:
     #load the image, preprocess it and then store it into "data"
     image = cv2.imread(imagePath)
-    image = cv2.resize(image, (28,28))
+    image = cv2.resize(image, (56,56))
     image = img_to_array(image)
     data.append(image)
 
@@ -92,7 +92,7 @@ aug = ImageDataGenerator(rotation_range=30, width_shift_range=0.1, height_shift_
 #initialize the model 
 
 print('[INFO] compiling the model ...')
-model = LeNet.build(width=28, height=28, depth=3, classes=6)
+model = LeNet.build(width=56, height=56, depth=3, classes=6)
 opt = Adam(lr=INIT_LR, decay=INIT_LR/EPOCHS)
 model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['accuracy'])
 
@@ -100,4 +100,24 @@ model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['accuracy
 
 print("[INFO] training the network ... ")
 
+H = model.fit_generator(aug.flow(trainX, trainY, batch_size=BS), validation_data=(testX, testY), steps_per_epoch=len(trainX)//BS, epochs=EPOCHS, verbose=1)
 
+# saving the model to disk 
+
+print('[INFO] serializing the network ... ')
+model.save(args['model'])
+
+# plot the training loss and accuracy 
+
+plt.style.use('ggplot')
+plt.figure()
+N = EPOCHS
+plt.plot(np.arange(0,N), H.history['loss'], label='train_loss')
+plt.plot(np.arange(0,N), H.history['val_loss'], label='val_loss')
+plt.plot(np.arange(0,N), H.history['acc'], label='accuracy')
+plt.plot(np.arange(0,N), H.history['val_acc'], label='val_accuracy')
+plt.title("Training and Validation Loss for Different kinds of trash")
+plt.xlabel('# of Epochs')
+plt.ylabel("Loss/Accuracy")
+plt.legend(loc='lower left')
+plt.savefig(args['plot'])

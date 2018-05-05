@@ -33,9 +33,26 @@ class LeNet:
         model.add(Activation('relu'))
         model.add(MaxPooling2D(pool_size=(2,2), strides=(2,2)))
 
-        # first set of FC layers => RELU 
+        #third set of CONV, RELU and POOL layers 
+
+        model.add(Conv2D(100, (5,5), padding='same'))
+        model.add(Activation('relu'))
+        model.add(MaxPooling2D(pool_size=(2,2), strides=(2,2)))
+
+        #fourth set of CONV, RELU and POOL layers 
+
+        model.add(Conv2D(200, (5,5), padding='same'))
+        model.add(Activation('relu'))
+        model.add(MaxPooling2D(pool_size=(2,2), strides=(2,2)))
+
+        # first set of FC layer => RELU 
 
         model.add(Flatten())
+        model.add(Dense(500))
+        model.add(Activation("relu"))
+
+        # second set of FC layer => RELU
+
         model.add(Dense(500))
         model.add(Activation("relu"))
 
