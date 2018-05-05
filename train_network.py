@@ -12,7 +12,7 @@ from keras.optimizers import Adam
 from sklearn.model_selection import train_test_split
 from keras.preprocessing.image import img_to_array
 from keras.utils import to_categorical
-from dl_arch import LeNet
+from dl_arch import LeNet_modified
 from imutils import paths 
 import matplotlib.pyplot as plt 
 import numpy as np 
@@ -29,6 +29,7 @@ args = vars(ap.parse_args())
 EPOCHS = 25
 INIT_LR = 1e-3
 BS = 32
+RESIZE_SIZE = 56
 
 # initialize the data and labels 
 print("[INFO] loading images ..."  )
@@ -45,7 +46,7 @@ random.shuffle(imagePaths)
 for imagePath in imagePaths:
     #load the image, preprocess it and then store it into "data"
     image = cv2.imread(imagePath)
-    image = cv2.resize(image, (56,56))
+    image = cv2.resize(image, (RESIZE_SIZE,RESIZE_SIZE))
     image = img_to_array(image)
     data.append(image)
 
@@ -87,12 +88,12 @@ trainY = to_categorical(trainY, num_classes=6)
 testY = to_categorical(testY, num_classes=6)
 
 # construct the image generator for data augmentation 
-aug = ImageDataGenerator(rotation_range=30, width_shift_range=0.1, height_shift_range=0.1, shear_range=0.2, zoom_range=0.2, horizontal_flip=True, fill_mode="nearest")
+aug = ImageDataGenerator(rotation_range=30, rescale=1./255 ,width_shift_range=0.1, height_shift_range=0.1, shear_range=0.2, zoom_range=0.2, horizontal_flip=True, fill_mode="nearest")
 
 #initialize the model 
 
 print('[INFO] compiling the model ...')
-model = LeNet.build(width=56, height=56, depth=3, classes=6)
+model = LeNet_modified.build(width=RESIZE_SIZE, height=RESIZE_SIZE, depth=3, classes=6)
 opt = Adam(lr=INIT_LR, decay=INIT_LR/EPOCHS)
 model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['accuracy'])
 

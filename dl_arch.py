@@ -8,9 +8,10 @@ from keras.layers.convolutional import MaxPooling2D
 from keras.layers.core import Activation
 from keras.layers.core import Flatten 
 from keras.layers.core import Dense 
+from keras.layers.core import Dropout
 from keras import backend as K 
 
-class LeNet:
+class LeNet_modified:
     @staticmethod
     def build(width, height, depth, classes):
         # initialize the model 
@@ -65,4 +66,28 @@ class LeNet:
 
         return model 
 
-    
+class LeNet():
+    @staticmethod
+    def build(width, height, depth, classes):
+        model = Sequential()
+        inputShape = (height, width, depth) #channels_last convention for the TF backend
+        
+        # if we're using channels first, update the input shape 
+        if K.image_data_format() == 'channels_first':
+            inputShape = (depth, height, width)
+        
+        model.add(Conv2D(32, (3,3), input_shape=inputShape))
+        model.add(Activation("relu"))
+        model.add(MaxPooling2D(pool_size=(2,2)))
+
+        model.add(Conv2D(32, (3,3)))
+        model.add(Activation("relu"))
+        model.add(MaxPooling2D(pool_size=(2,2))
+
+        model.add(Conv2D(64, (3,3)))
+        model.add(Activation("relu"))
+        model.add(MaxPooling2D(pool_size=(2,2)))
+
+        # TODO: still to be completed 
+
+        return model 
