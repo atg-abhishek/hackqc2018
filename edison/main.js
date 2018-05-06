@@ -7,7 +7,7 @@ var CALIBRATION_FACTOR = -7050;
 
 var READINGS_PER_SECOND = 2;
 var POST_REQUEST_THRESHOLD = 1;
-// var GARBAGE_HOST = "c0554f05.ngrok.io/"; // abhishek
+// var GARBAGE_HOST = "c0554f05.ngrok.io"; // abhishek
 var GARBAGE_HOST = "58da7600.ngrok.io"; // mario
 
 // Arduino mapping
@@ -105,7 +105,7 @@ function randomDevice() {
 function postGarbage(weight, cb) {
   var postData = JSON.stringify({
     lbs: weight,
-    deviceId: randomDevice(),
+    deviceID: randomDevice(),
   });
 
   log('postGarbage', postData);
