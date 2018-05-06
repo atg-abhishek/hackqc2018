@@ -1,15 +1,20 @@
 var hx711 = require("jsupm_hx711"); // Instantiate a HX711 data on digital pin D3 and clock on digital pin D2
 var outliers = require('outliers');
+var http = require('http');
+
+var CALIBRATION_FACTOR = -7050;
+
+var READINGS_PER_SECOND = 2;
+var POST_REQUEST_THRESHOLD = 1;
+// var GARBAGE_HOST = "c0554f05.ngrok.io/"; // abhishek
+var GARBAGE_HOST = "58da7600.ngrok.io"; // mario
 
 // Arduino mapping
 var DATA_SHIELD = 3; // Arduino shield
 var CLOCK_SHIELD = 2; // Arduino shield
-
-// MRAA mapping
-var DATA_MRAA = 20; // GPIO block GP12
-var CLOCK_MRAA = 13; // GPIO block GP128
-
 var scale = new hx711.HX711(DATA_SHIELD, CLOCK_SHIELD);
+
+var TEST_MODE = false;
 
 // Set to true when Ctrl-C entered
 var exitProcessRequested = false;
@@ -57,7 +62,6 @@ function setupKeyboard() {
   return true;
 }
 
-var CALIBRATION_FACTOR = -7050;
 
 function setupHX711() {
   //   scale.setScale(CALIBRATION_FACTOR);
@@ -77,18 +81,12 @@ function setupHX711() {
         return acc + value;
     }, 0) / values.length;
 
-    // offset = 7971400;
-
-    // offset = Math.round(offset * 100) / 100
-
-    console.log("offset", offset);
     periodicActivity(offset);
   }, 2000);
 }
 
-var READINGS_PER_SECOND = 2;
 var valuesHistory = [];
-var devices = [1, 2, 3, 4];
+var devices = [1, 2, 3, 4, 5, 6];
 
 function randomDevice() {
   try {
@@ -105,8 +103,10 @@ function postGarbage(weight, cb) {
     deviceId: randomDevice(),
   });
 
+  log('postGarbage', postData);
+
   var options = {
-    hostname: 'http://c0554f05.ngrok.io/',
+    hostname: GARBAGE_HOST,
     port: 80,
     path: '/garbage',
     method: 'POST',
@@ -117,10 +117,6 @@ function postGarbage(weight, cb) {
   };
 
   var req = http.request(options, (res) => {
-    if (res.statusCode != 200) {
-      cb(new Error("status code not 200"));
-    }
-
     console.log(`STATUS: ${res.statusCode}`);
     console.log(`HEADERS: ${JSON.stringify(res.headers)}`);
 
@@ -131,7 +127,13 @@ function postGarbage(weight, cb) {
     });
 
     res.on('end', () => {
-        cb();
+      var isSuccess = res.statusCode == 200 || (res.statusCode == 405 && TEST_MODE);
+
+      if (!isSuccess) {
+        return cb(new Error("status code not 200"));
+      }
+
+      cb();
     });
   });
 
@@ -149,57 +151,83 @@ function average(arr) {
     }, 0) / arr.length;
 }
 
-setTimeout(function() {
-    periodicActivity(offset);
-}, 1000 / READINGS_PER_SECOND);
+function scheduleNextReading(offset) {
+  if (!exitProcessRequested) {
+    setTimeout(function() {
+        periodicActivity(offset);
+    }, 1000 / READINGS_PER_SECOND);
+  } else {
+    console.log("All done!");
+  }
+}
 
-var POST_REQUEST_THRESHOLD = 1;
 var hasCrossedPostRequestThreshold = false;
+
+function log() {
+  if (TEST_MODE) {
+    console.log.apply(console, Array.from(arguments));
+  }
+}
 
 function periodicActivity(offset) {
   var value = (scale.getValue(1) - offset) / CALIBRATION_FACTOR;
-  value = parseFloat(Math.abs(value).toString()).toFixed(2);
+  value = Number(parseFloat(Math.abs(value).toString()).toFixed(2));
 
   console.log("Reading: " + value + " lbs");
 
   valuesHistory.push(value);
 
   if (valuesHistory.length >= READINGS_PER_SECOND * 10) {
-    valuesHistory.unshift();
+    log('clipping history');
+    valuesHistory.shift();
   } else {
-      scheduleNextReading(offset);
-      return;
+    log('not enough data', valuesHistory.length);
+    scheduleNextReading(offset);
+    return;
   }
 
+  log('valuesHistory', valuesHistory);
+
   if (!hasCrossedPostRequestThreshold) {
-      if (average(valuesHistory.filter(outliers())) >= POST_REQUEST_THRESHOLD) {
-          hasCrossedPostRequestThreshold = true;
-      } else {
-        scheduleNextReading(offset);
-        return;
-      }
+    var thresholdInquiryValues = valuesHistory.filter(outliers());
+    var thresholdInquiry = average(thresholdInquiryValues) || 0;
+
+    if (thresholdInquiry >= POST_REQUEST_THRESHOLD) {
+        hasCrossedPostRequestThreshold = true;
+        log('Crossed post request threshold, value: ', thresholdInquiry);
+    } else {
+      log('thresholdInquiryValues', thresholdInquiryValues);
+      log('Threshold not crossed, value', thresholdInquiry);
+      scheduleNextReading(offset);
+      return;
+    }
   }
 
   var sensicalHistory = valuesHistory.slice(10).filter(outliers());
 
+  log('sensicalHistory', sensicalHistory);
+
   if (average(sensicalHistory) < POST_REQUEST_THRESHOLD && sensicalHistory.length >= 5) {
-      var finalValue = average(sensicalHistory.slice(0,10).filter(outliers()));
+      var finalValue = average(valuesHistory.slice(0,10).filter(outliers()));
 
-      postGarbage(finalValue, function(e) {
-        if (e) {
-          console.log('error posting garbage', e);
-        }
+      try {
+        postGarbage(finalValue, function(e) {
+          if (e) {
+            console.error('error posting garbage (callback)', e);
+          }
+        });
+      } catch (e) {
+        console.error('error posting garbage (try-catch)', e);
+      }
 
-        scheduleNextReading(offset);
-      });
+      valuesHistory = [];
 
+      scheduleNextReading(offset);
       hasCrossedPostRequestThreshold = false;
       return;
   }
 
-  if (!exitProcessRequested) {
-    scheduleNextReading(offset);
-  } else {
-    console.log("All done!");
-  }
+  log('sensicalHistory does not cross post request threshold, sensicalHistory average', average(sensicalHistory))
+
+  scheduleNextReading(offset);
 }
