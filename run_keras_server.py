@@ -85,7 +85,13 @@ def add_garbage(deviceID):
 
 @app.route('/users/<userid>/friends', methods=['POST'])
 def add_friend(userid):
-    return ""
+    body = request.get_json()
+    friendid = body['friendid']
+    el = users.search(User_Query.userid == userid)[0]
+    lst = el['friends']
+    lst.append(friendid)
+    users.update({'friends' : lst}, User_Query.userid == userid)
+    return jsonify({"result" : "success"})
 
 @app.route('/users/<userid>/friends')
 def return_friends(userid):
@@ -94,7 +100,13 @@ def return_friends(userid):
 
 @app.route('/users/<userid>/devices', methods=['POST'])
 def add_device(userid):
-    return ""
+    body = request.get_json()
+    deviceID = body['deviceID']
+    el = users.search(User_Query.userid == userid)[0]
+    lst = el['devices']
+    lst.append(deviceID)
+    users.update({'devices' : lst}, User_Query.userid == userid)
+    return jsonify({"result" : "success"})
 
 @app.route('/users/<userid>/devices')
 def return_devices(userid):
