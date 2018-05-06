@@ -4,6 +4,9 @@
   "private": true,
   "dependencies": {
     "@material/button": "^0.35.0",
+    "axios": "^0.18.0",
+    "lodash": "^4.17.10",
+    "rc-upload": "^2.4.4",
     "react": "^16.3.2",
     "react-dom": "^16.3.2",
     "react-mdl": "^1.11.0",
