@@ -8,15 +8,16 @@ import matplotlib
 matplotlib.use('Agg')
 
 from keras.preprocessing.image import ImageDataGenerator
-from keras.optimizers import Adam
+from keras.optimizers import Adam, RMSprop, SGD
 from sklearn.model_selection import train_test_split
 from keras.preprocessing.image import img_to_array
 from keras.utils import to_categorical
-from dl_arch import LeNet_modified
+from dl_arch import LeNet_modified, LeNet, TopModel
 from imutils import paths 
 import matplotlib.pyplot as plt 
 import numpy as np 
 import argparse, random, cv2, os 
+from pprint import pprint 
 
 # construct the argument parse and parse the arguments 
 ap = argparse.ArgumentParser()
@@ -26,9 +27,9 @@ ap.add_argument('-p', '--plot', type=str, default='plot.png', help="path to outp
 args = vars(ap.parse_args())
 
 # initialize the number of epochs, learning rate, and batch size 
-EPOCHS = 25
-INIT_LR = 1e-3
-BS = 32
+EPOCHS = 10
+INIT_LR = 0.1
+BS = 64
 RESIZE_SIZE = 56
 
 # initialize the data and labels 
@@ -38,7 +39,7 @@ labels = []
 
 # grab the image paths and randomly shuffle them 
 imagePaths = sorted(list(paths.list_images(args['dataset'])))
-random.seed(42)
+random.seed(12)
 random.shuffle(imagePaths)
 
 # looping over the images to preprocess them 
@@ -49,7 +50,6 @@ for imagePath in imagePaths:
     image = cv2.resize(image, (RESIZE_SIZE,RESIZE_SIZE))
     image = img_to_array(image)
     data.append(image)
-
     # extract the class label from the image path and then update the labels list 
     '''
     LABEL mapping 
@@ -75,12 +75,13 @@ for imagePath in imagePaths:
     
     labels.append(label)
 
+
 # scaling raw pixel intensities 
 
 data = np.array(data, dtype="float") /255.0 
 labels = np.array(labels)
 
-(trainX, testX, trainY, testY) = train_test_split(data, labels, test_size = 0.25, random_state=42)
+(trainX, testX, trainY, testY) = train_test_split(data, labels, test_size = 0.1, random_state=42)
 
 # converting the labels from integers to vectors 
 
@@ -93,7 +94,7 @@ aug = ImageDataGenerator(rotation_range=30, rescale=1./255 ,width_shift_range=0.
 #initialize the model 
 
 print('[INFO] compiling the model ...')
-model = LeNet_modified.build(width=RESIZE_SIZE, height=RESIZE_SIZE, depth=3, classes=6)
+model = LeNet.build(width=RESIZE_SIZE, height=RESIZE_SIZE, depth=3, classes=6)
 opt = Adam(lr=INIT_LR, decay=INIT_LR/EPOCHS)
 model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['accuracy'])
 

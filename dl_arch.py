@@ -76,18 +76,35 @@ class LeNet():
         if K.image_data_format() == 'channels_first':
             inputShape = (depth, height, width)
         
-        model.add(Conv2D(32, (3,3), input_shape=inputShape))
+        model.add(Conv2D(10, (3,3), input_shape=inputShape))
         model.add(Activation("relu"))
         model.add(MaxPooling2D(pool_size=(2,2)))
 
-        model.add(Conv2D(32, (3,3)))
-        model.add(Activation("relu"))
-        model.add(MaxPooling2D(pool_size=(2,2))
+        # model.add(Conv2D(32, (3,3)))
+        # model.add(Activation("relu"))
+        # model.add(MaxPooling2D(pool_size=(2,2)))
 
-        model.add(Conv2D(64, (3,3)))
-        model.add(Activation("relu"))
-        model.add(MaxPooling2D(pool_size=(2,2)))
+        # model.add(Conv2D(64, (3,3)))
+        # model.add(Activation("relu"))
+        # model.add(MaxPooling2D(pool_size=(2,2)))
 
-        # TODO: still to be completed 
+        model.add(Flatten())
+        model.add(Dense(10))
+        model.add(Activation("relu"))
+        # model.add(Dropout(0.5))
+        model.add(Dense(classes))
+        model.add(Activation("softmax"))
 
         return model 
+
+class TopModel():
+    @staticmethod
+    def build(width, height, depth, classes):
+        inputShape = (height, width, depth)
+        model = Sequential()
+        model.add(Flatten(input_shape=inputShape))
+        model.add(Dense(256, activation='relu'))
+        model.add(Dropout(0.5))
+        model.add(Dense(classes, activation='softmax'))
+
+        return model
