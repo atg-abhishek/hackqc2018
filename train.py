@@ -3,7 +3,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from keras.preprocessing.image import img_to_array
 from keras.models import Sequential
-from keras.layers import Conv2D, Dense, Flatten, MaxPool2D
+from keras.layers import Conv2D, Dense, Flatten, MaxPool2D, Dropout
 from keras.utils import to_categorical
 from keras.optimizers import Adam
 import cv2, random, os
@@ -38,6 +38,7 @@ def build_model(width, height, depth, classes):
 
     model.add(Flatten())
     model.add(Dense(500, activation='relu'))
+    model.add(Dropout(0.3))
     model.add(Dense(classes, activation='softmax'))
 
     return model 
@@ -125,7 +126,7 @@ def visualize(H, plot_path, epochs):
     plt.legend(loc='lower left')
     plt.savefig(plot_path)
 
-TRIAL_NUMBER = 1
+TRIAL_NUMBER = 2
 if not os.path.exists("info/Trial"+str(TRIAL_NUMBER)):
     os.makedirs("info/Trial"+str(TRIAL_NUMBER))
 BASEPATH = "info/Trial"+str(TRIAL_NUMBER)+"/"
