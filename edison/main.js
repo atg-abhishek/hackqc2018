@@ -15,8 +15,11 @@ var DATA_SHIELD = 3; // Arduino shield
 var CLOCK_SHIELD = 2; // Arduino shield
 var scale = new hx711.HX711(DATA_SHIELD, CLOCK_SHIELD);
 var lcd = new jsUpmI2cLcd.Jhd1313m1(6, 0x3E, 0x62);
+var canWriteToLcd = true;
+
 lcd.clear();
 lcd.setCursor(0, 1);
+lcd.setColor(255, 255, 255);
 writeToScreen('Calibrating...');
 
 var TEST_MODE = false;
@@ -103,6 +106,9 @@ function randomDevice() {
 }
 
 function postGarbage(weight, cb) {
+  writeToScreen('Envoi...');
+  canWriteToLcd = false;
+
   var postData = JSON.stringify({
     lbs: weight,
     deviceID: randomDevice(),
@@ -135,8 +141,28 @@ function postGarbage(weight, cb) {
       var isSuccess = res.statusCode == 200 || (res.statusCode == 405 && TEST_MODE);
 
       if (!isSuccess) {
+        canWriteToLcd = true;
+        lcd.setColor(255, 0, 0);
+        writeToScreen('Echec :(');
+        canWriteToLcd = false;
+
+        setTimeout(function() {
+          lcd.setColor(255, 255, 255);
+          canWriteToLcd = true;
+        }, 3000);
+
         return cb(new Error("status code not 200"));
       }
+
+      canWriteToLcd = true;
+      lcd.setColor(0, 255, 0);
+      writeToScreen('Envoi reussi :)');
+      canWriteToLcd = false;
+
+      setTimeout(function() {
+        lcd.setColor(255, 255, 255);
+        canWriteToLcd = true;
+      }, 3000);
 
       cb();
     });
@@ -157,8 +183,10 @@ function average(arr) {
 }
 
 function writeToScreen(text) {
-  lcd.clear();
-  lcd.write(text);
+  if (canWriteToLcd) {
+    lcd.clear();
+    lcd.write(text);
+  }
 }
 
 function cleanUp() {
