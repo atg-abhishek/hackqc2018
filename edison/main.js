@@ -1,4 +1,5 @@
 var hx711 = require("jsupm_hx711"); // Instantiate a HX711 data on digital pin D3 and clock on digital pin D2
+var jsUpmI2cLcd  = require ('jsupm_i2clcd');
 var outliers = require('outliers');
 var http = require('http');
 
@@ -13,6 +14,10 @@ var GARBAGE_HOST = "58da7600.ngrok.io"; // mario
 var DATA_SHIELD = 3; // Arduino shield
 var CLOCK_SHIELD = 2; // Arduino shield
 var scale = new hx711.HX711(DATA_SHIELD, CLOCK_SHIELD);
+var lcd = new jsUpmI2cLcd.Jhd1313m1(6, 0x3E, 0x62);
+lcd.clear();
+lcd.setCursor(0, 1);
+writeToScreen('Calibrating...');
 
 var TEST_MODE = false;
 
@@ -151,6 +156,15 @@ function average(arr) {
     }, 0) / arr.length;
 }
 
+function writeToScreen(text) {
+  lcd.clear();
+  lcd.write(text);
+}
+
+function cleanUp() {
+  lcd.clear();
+}
+
 function scheduleNextReading(offset) {
   if (!exitProcessRequested) {
     setTimeout(function() {
@@ -158,6 +172,7 @@ function scheduleNextReading(offset) {
     }, 1000 / READINGS_PER_SECOND);
   } else {
     console.log("All done!");
+    cleanUp();
   }
 }
 
@@ -174,6 +189,8 @@ function periodicActivity(offset) {
   value = Number(parseFloat(Math.abs(value).toString()).toFixed(2));
 
   console.log("Reading: " + value + " lbs");
+
+  writeToScreen(`${value.toString()} lbs`);
 
   valuesHistory.push(value);
 
